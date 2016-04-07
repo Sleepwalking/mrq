@@ -9,8 +9,9 @@
 
 #include <wchar.h>
 #include <stdio.h>
+#include <stdint.h>
 
-#define MRQ_VERSION 1
+#define MRQ_VERSION 2
 
 /* sequence of storage:
    int32_t     nfilename
@@ -20,12 +21,16 @@
    int32_t     fs
    int32_t     nhop
    float[]     f0
+   int32_t     unix timestamp
+   int32_t     modified by hand (0: true, >=1: false)
 */
 typedef struct {
   int nhop;
   int fs;
   double* f0;
   int nf0;
+  int32_t timestamp; // read-only
+  int modified;
 } mrq_entry;
 
 typedef int (*mrq_fenum)(const wchar_t*, mrq_entry*, void*);

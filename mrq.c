@@ -251,7 +251,7 @@ int mrq_enumerate(FILE* src, mrq_fenum enumproc, void* param) {
   if(fread(& nentry, 4, 1, src) == 0) return 0;
 
   for(int i = 0; i < nentry; i ++) {
-    int32_t pos = 0, nfilename = 0, size = 0;
+    int32_t pos = 0, pos2 = 0, nfilename = 0, size = 0;
     wchar_t* wfilename = NULL;
     mrq_entry* entry = NULL;
     pos = ftell(src);
@@ -262,11 +262,14 @@ int mrq_enumerate(FILE* src, mrq_fenum enumproc, void* param) {
     wfilename = short_to_wchar(filename, nfilename);
     free(filename);
     if(fread(& size, 4, 1, src) == 0) { free(wfilename); return 0; }
+    pos2 = ftell(src);
     fseek(src, pos, SEEK_SET);
     entry = mrq_get_entry_without_seeking(src);
     if(enumproc(wfilename, entry, param) != 1) { delete_mrq_entry(entry); free(wfilename); return 0; }
     delete_mrq_entry(entry);
     free(wfilename);
+    fseek(src, pos2, SEEK_SET);
+    if (fseek(src, size, SEEK_CUR) == -1) return -1; // skip nf0, fs, nhop, f0[]
   }
   return 1;
 }

@@ -4,6 +4,10 @@
   Copyright (c) 2015-2016 Kanru Hua. All rights reserved.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef MORESMPL_MRQ
 #define MORESMPL_MRQ
 
@@ -79,6 +83,10 @@ int mrq_enumerate(FILE* src, mrq_fenum enumproc, void* param);
 // returns 0 on error
 // CLOSE all file pointers to <path> before calling this function
 int mrq_defragment(const wchar_t* path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -4,12 +4,12 @@
   Copyright (c) 2015-2016 Kanru Hua. All rights reserved.
 */
 
+#ifndef MORESMPL_MRQ
+#define MORESMPL_MRQ
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#ifndef MORESMPL_MRQ
-#define MORESMPL_MRQ
 
 #include <wchar.h>
 #include <stdio.h>

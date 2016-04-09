@@ -3,9 +3,11 @@
   ===
   Copyright (c) 2015-2016 Kanru Hua. All rights reserved.
   
-  Jan 30, 2016 - Add mrq_enumerate (by Masao)
+  Jan 30, 2016 - add mrq_enumerate (by Masao)
   Apr 5, 2016 - version 2: add timestamp and modification status into mrq_entry,
     while being forward & backward compatible with version 1.
+  Apr 8, 2016 - fix a bug in mrq_enumerate;
+                add mrq_set_version.
 
   License for mrq.c
   ===
@@ -42,6 +44,8 @@
 #include <stdint.h>
 #include <time.h>
 
+static int write_version = MRQ_VERSION;
+
 FILE* _wfopen(const wchar_t *filename, const wchar_t *mode);
 
 static FILE* generic_wfopen(const wchar_t* filename, const wchar_t* mode) {
@@ -57,6 +61,10 @@ static FILE* generic_wfopen(const wchar_t* filename, const wchar_t* mode) {
   free(cfilename);
 # endif
   return fp;
+}
+
+void mrq_set_version(int version) {
+  write_version = version;
 }
 
 mrq_entry* create_mrq_entry(int nf0) {
@@ -90,7 +98,7 @@ FILE* mrq_open(const wchar_t* path, const wchar_t* mode) {
   fseek(fp, 0, SEEK_END);
   int size = ftell(fp);
   if(size == 0) { // initialize
-    int32_t version = MRQ_VERSION;
+    int32_t version = write_version;
     int32_t nentry = 0;
     fwrite("mrq ", 1, 4, fp);
     fwrite(& version, 4, 1, fp);
@@ -180,12 +188,14 @@ int mrq_write_entry(FILE* dst, const wchar_t* name, mrq_entry* src) {
   int32_t nfilename, size = 0, nf0 = 0, fs = 0, nhop = 0, modified = 0;
   int append = 0;
   
+  int fixed_size = write_version == 1 ? 12 : 20;
+  
   if(mrq_seek_entry(dst, name) != -1) { // found an existing entry
     int pos = ftell(dst);
     fread(& nfilename, 4, 1, dst);
     fseek(dst, nfilename * 2, SEEK_CUR);
     fread(& size, 4, 1, dst);
-    if(size - 20 < src -> nf0 * 4) { // insufficient space for overwriting
+    if(size - fixed_size < src -> nf0 * 4) { // insufficient space for overwriting
       append = 1;
       fseek(dst, pos + 4, SEEK_SET);
       short int* null_string = calloc(nfilename, sizeof(short int));
@@ -207,7 +217,7 @@ int mrq_write_entry(FILE* dst, const wchar_t* name, mrq_entry* src) {
     short int* name_short = wchar_to_short(name, nfilename);
     if(fwrite(name_short, 2, nfilename, dst) == 0) { free(name_short); return 0;} // write the new filename to be created
     free(name_short);
-    size = 20 + src -> nf0 * 4;
+    size = fixed_size + src -> nf0 * 4;
     if(fwrite(& size, 4, 1, dst) == 0) return 0; // write the size of the data trunk
   }
   nf0 = src -> nf0; fs = src -> fs; nhop = src -> nhop; modified = src -> modified;
@@ -215,7 +225,7 @@ int mrq_write_entry(FILE* dst, const wchar_t* name, mrq_entry* src) {
 
   // update version
   if(fseek(dst, 4, SEEK_SET) == -1) return -1;
-  int32_t version = MRQ_VERSION;
+  int32_t version = write_version;
   if(fwrite(& version, 4, 1, dst) == 0) { return -1;};
 
   fseek(dst, write_pos, SEEK_SET); // switch back and prepare for writing
@@ -226,10 +236,12 @@ int mrq_write_entry(FILE* dst, const wchar_t* name, mrq_entry* src) {
   for(int i = 0; i < nf0; i ++) f0_float[i] = src -> f0[i];
   if(fwrite(f0_float, 4, nf0, dst) == 0) { free(f0_float); return 0;};
   
-  time_t timestamp_time_t;
-  time(& timestamp_time_t); src -> timestamp = timestamp_time_t;
-  if(fwrite(& src -> timestamp, 4, 1, dst) == 0) { free(f0_float); return 0;};
-  if(fwrite(& modified, 4, 1, dst) == 0) { free(f0_float); return 0;};
+  if(write_version > 1) {
+    time_t timestamp_time_t;
+    time(& timestamp_time_t); src -> timestamp = timestamp_time_t;
+    if(fwrite(& src -> timestamp, 4, 1, dst) == 0) { free(f0_float); return 0;};
+    if(fwrite(& modified, 4, 1, dst) == 0) { free(f0_float); return 0;};
+  }
   free(f0_float);
   return 1;
 }
@@ -267,6 +279,7 @@ int mrq_enumerate(FILE* src, mrq_fenum enumproc, void* param) {
     if(enumproc(wfilename, entry, param) != 1) { delete_mrq_entry(entry); free(wfilename); return 0; }
     delete_mrq_entry(entry);
     free(wfilename);
+    fseek(src, pos + 8 + nfilename * 2 + size, SEEK_SET);
   }
   return 1;
 }

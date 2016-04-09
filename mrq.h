@@ -35,6 +35,8 @@ typedef struct {
 
 typedef int (*mrq_fenum)(const wchar_t*, mrq_entry*, void*);
 
+void mrq_set_version(int version);
+
 mrq_entry* create_mrq_entry(int nf0);
 void delete_mrq_entry(mrq_entry* dst);
 

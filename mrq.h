@@ -7,6 +7,10 @@
 #ifndef MORESMPL_MRQ
 #define MORESMPL_MRQ
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <wchar.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -81,6 +85,10 @@ int mrq_enumerate(FILE* src, mrq_fenum enumproc, void* param);
 // returns 0 on error
 // CLOSE all file pointers to <path> before calling this function
 int mrq_defragment(const wchar_t* path);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
